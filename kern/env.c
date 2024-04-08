@@ -91,6 +91,9 @@ envid2env(envid_t envid, struct Env **env_store, bool checkperm)
 	e = &envs[ENVX(envid)];
 	if (e->env_status == ENV_FREE || e->env_id != envid) {
 		*env_store = 0;
+		cprintf("env_staus:%d\n",e->env_status);
+		cprintf("e->env_id is %d\n",e->env_id);
+		cprintf("envid is %d\n",envid);
 		return -E_BAD_ENV;
 	}
 
@@ -136,7 +139,8 @@ env_init(void)
 	}
 	envs[NENV].env_link = envs;
 	env_free_list = envs;
-	/*for(temp = NENV-1;temp>=0;temp--)
+	/*int temp;
+	for(temp = NENV-1;temp>=0;temp--)
 	{
 		envs[temp].env_status = ENV_FREE;
 		envs[temp].env_id = 0;
@@ -276,6 +280,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 
 	// Enable interrupts while in user mode.
 	// LAB 4: Your code here.
+	e->env_tf.tf_eflags |= FL_IF;
 
 	// Clear the page fault handler until user installs one.
 	e->env_pgfault_upcall = 0;
@@ -418,7 +423,7 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
-	struct Env* en = NULL;
+	struct Env* en;
 	int flag = env_alloc(&en,0); 
 	if(flag<0)
 		panic("env_alloc: alloc error!\n");
@@ -515,6 +520,7 @@ env_pop_tf(struct Trapframe *tf)
 {
 	// Record the CPU we are running on for user-space debugging
 	curenv->env_cpunum = cpunum();
+//	cprintf("env_pop_tf: the envid is %08x\n",curenv->env_id);
 
 	asm volatile(
 		"\tmovl %0,%%esp\n"
@@ -564,6 +570,8 @@ env_run(struct Env *e)
 	curenv = e;
 	e->env_status = ENV_RUNNING;
 	e->env_runs += 1;
+//	cprintf("env_run: the next envid is %08x\n",e->env_id);
+	unlock_kernel();
 	lcr3(PADDR(e->env_pgdir));
 	env_pop_tf(&(e->env_tf));
 }	

@@ -30,6 +30,28 @@ sched_yield(void)
 
 	// LAB 4: Your code here.
 
+	// Search through 'envs' for an ENV_RUNNABLE environment in
+	// circular fashion starting just after the env this CPU was
+	// last running
+	idle = curenv;
+	int id = (idle == NULL)? -1 : ENVX(idle->env_id);
+	int i;
+	
+	for(i = id + 1; i < NENV;i++)
+	{
+		if(envs[i].env_status == ENV_RUNNABLE)
+			env_run(envs + i);
+	}
+
+	for(i = 0; i<id ;i++)
+	{
+		if(envs[i].env_status == ENV_RUNNABLE)
+			env_run(envs + i);
+	}
+
+	if(idle!=NULL  && idle->env_status == ENV_RUNNING)
+		env_run(idle);
+
 	// sched_halt never returns
 	sched_halt();
 }
@@ -75,7 +97,7 @@ sched_halt(void)
 		"pushl $0\n"
 		"pushl $0\n"
 		// Uncomment the following line after completing exercise 13
-		//"sti\n"
+		"sti\n"
 		"1:\n"
 		"hlt\n"
 		"jmp 1b\n"
